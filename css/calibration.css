@@ -1,0 +1,333 @@
+/* ============================================
+   G.R.I.P. Platform — Calibration Screen
+   ============================================ */
+
+/* ---- Calibration Wrapper (centered, theatrical) ---- */
+.calibration {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(100vh - var(--header-height));
+  padding: var(--space-8);
+  text-align: center;
+  position: relative;
+}
+
+.calibration::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 600px;
+  height: 600px;
+  background: radial-gradient(circle, rgba(0, 240, 255, 0.04) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+/* ---- Calibration Card ---- */
+.calibration-card {
+  background: var(--color-bg-raised);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  padding: var(--space-10) var(--space-8);
+  max-width: 520px;
+  width: 100%;
+  position: relative;
+  z-index: 1;
+  animation: fadeIn 0.4s ease, slideUp 0.4s ease;
+}
+
+.calibration-card__icon {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto var(--space-5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--color-accent-dim);
+  color: var(--color-accent);
+  font-size: var(--text-2xl);
+  box-shadow: var(--glow-cyan-md);
+  animation: pulse-glow 3s ease infinite;
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: var(--glow-cyan-md); }
+  50% { box-shadow: var(--glow-cyan-lg); }
+}
+
+.calibration-card__title {
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-bold);
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-2);
+}
+
+.calibration-card__description {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  line-height: var(--leading-relaxed);
+  margin-bottom: var(--space-6);
+  max-width: 400px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* ---- Stream Status Indicators ---- */
+.stream-status-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-bottom: var(--space-6);
+  text-align: left;
+}
+
+.stream-status {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  transition: var(--transition-all);
+}
+
+.stream-status__indicator {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  transition: var(--transition-all);
+}
+
+/* Offline */
+.stream-status--offline .stream-status__indicator {
+  background: var(--color-text-muted);
+}
+
+.stream-status--offline .stream-status__label {
+  color: var(--color-text-muted);
+}
+
+/* Connecting */
+.stream-status--connecting .stream-status__indicator {
+  background: var(--color-warning);
+  box-shadow: 0 0 8px rgba(255, 184, 0, 0.5);
+  animation: pulse-dot 1s ease infinite;
+}
+
+.stream-status--connecting .stream-status__label {
+  color: var(--color-warning);
+}
+
+.stream-status--connecting {
+  border-color: rgba(255, 184, 0, 0.2);
+}
+
+/* Online */
+.stream-status--online .stream-status__indicator {
+  background: var(--color-success);
+  box-shadow: 0 0 8px rgba(0, 255, 136, 0.5);
+}
+
+.stream-status--online .stream-status__label {
+  color: var(--color-success);
+}
+
+.stream-status--online {
+  border-color: rgba(0, 255, 136, 0.15);
+}
+
+/* Error */
+.stream-status--error .stream-status__indicator {
+  background: var(--color-error);
+  box-shadow: 0 0 8px rgba(255, 64, 96, 0.5);
+}
+
+.stream-status--error .stream-status__label {
+  color: var(--color-error);
+}
+
+.stream-status--error {
+  border-color: rgba(255, 64, 96, 0.15);
+}
+
+.stream-status__label {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  flex: 1;
+}
+
+.stream-status__detail {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+/* ---- Calibration Progress ---- */
+.calibration-progress {
+  margin-bottom: var(--space-6);
+}
+
+.calibration-progress__bar {
+  width: 100%;
+  height: 8px;
+  background: var(--color-bg);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+  margin-bottom: var(--space-3);
+}
+
+.calibration-progress__fill {
+  height: 100%;
+  border-radius: var(--radius-full);
+  background: linear-gradient(90deg, var(--color-accent), rgba(0, 240, 255, 0.7));
+  box-shadow: var(--glow-cyan-sm);
+  transition: width 0.5s ease;
+  position: relative;
+}
+
+.calibration-progress__fill::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.2) 50%,
+    transparent 100%
+  );
+  animation: shimmer 2s ease infinite;
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.calibration-progress__text {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+.calibration-progress__percent {
+  color: var(--color-accent);
+  font-weight: var(--weight-bold);
+}
+
+/* ---- Pulsing Ring Effect ---- */
+.pulse-ring {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pulse-ring::before,
+.pulse-ring::after {
+  content: '';
+  position: absolute;
+  border: 2px solid var(--color-accent);
+  border-radius: 50%;
+  animation: ring-pulse 2.5s ease infinite;
+}
+
+.pulse-ring::before {
+  width: 100%;
+  height: 100%;
+  animation-delay: 0s;
+}
+
+.pulse-ring::after {
+  width: 100%;
+  height: 100%;
+  animation-delay: 1.25s;
+}
+
+@keyframes ring-pulse {
+  0% {
+    transform: scale(1);
+    opacity: 0.6;
+  }
+  100% {
+    transform: scale(2);
+    opacity: 0;
+  }
+}
+
+/* ---- Calibration Steps ---- */
+.calibration-steps {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-6);
+}
+
+.calibration-step {
+  width: 32px;
+  height: 4px;
+  border-radius: var(--radius-full);
+  background: var(--color-border);
+  transition: var(--transition-all);
+}
+
+.calibration-step--active {
+  background: var(--color-accent);
+  box-shadow: var(--glow-cyan-sm);
+  width: 48px;
+}
+
+.calibration-step--complete {
+  background: var(--color-success);
+}
+
+/* ---- Scan Line Overlay ---- */
+.scan-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  border-radius: inherit;
+}
+
+.scan-overlay::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(0, 240, 255, 0.3),
+    transparent
+  );
+  animation: scan-line 3s ease infinite;
+}
+
+@keyframes scan-line {
+  0% { top: -2px; opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { top: 100%; opacity: 0; }
+}
+
+/* ---- Responsive ---- */
+@media (max-width: 768px) {
+  .calibration {
+    padding: var(--space-4);
+  }
+
+  .calibration-card {
+    padding: var(--space-6) var(--space-5);
+  }
+}

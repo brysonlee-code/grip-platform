@@ -1,0 +1,291 @@
+/* ============================================
+   G.R.I.P. Platform — App Shell Layout
+   ============================================ */
+
+/* ---- App Shell ---- */
+.app-shell {
+  display: grid;
+  grid-template-columns: var(--sidebar-width) 1fr;
+  grid-template-rows: var(--header-height) 1fr;
+  grid-template-areas:
+    "sidebar header"
+    "sidebar main";
+  min-height: 100vh;
+  width: 100%;
+}
+
+.app-shell--collapsed {
+  grid-template-columns: var(--sidebar-collapsed) 1fr;
+}
+
+/* ---- Sidebar ---- */
+.sidebar {
+  grid-area: sidebar;
+  background: var(--color-bg-raised);
+  border-right: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  z-index: var(--z-sticky);
+  overflow-y: auto;
+  overflow-x: hidden;
+  transition: width var(--transition-slow);
+}
+
+.sidebar__logo {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+  height: var(--header-height);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.sidebar__logo-text {
+  font-family: var(--font-mono);
+  font-size: var(--text-lg);
+  font-weight: var(--weight-bold);
+  color: var(--color-accent);
+  letter-spacing: 0.1em;
+  text-shadow: var(--text-glow-cyan);
+}
+
+.sidebar__nav {
+  flex: 1;
+  padding: var(--space-4) var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.sidebar__link {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  transition: var(--transition-all);
+  text-decoration: none;
+}
+
+.sidebar__link:hover {
+  color: var(--color-text-primary);
+  background: rgba(255, 255, 255, 0.04);
+  text-decoration: none;
+}
+
+.sidebar__link--active {
+  color: var(--color-accent);
+  background: var(--color-accent-dim);
+}
+
+.sidebar__link--active:hover {
+  background: var(--color-accent-dim);
+}
+
+.sidebar__footer {
+  padding: var(--space-4);
+  border-top: 1px solid var(--color-border);
+}
+
+/* ---- Header Bar ---- */
+.header {
+  grid-area: header;
+  background: var(--color-bg-raised);
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--space-6);
+  height: var(--header-height);
+  position: sticky;
+  top: 0;
+  z-index: var(--z-sticky);
+}
+
+.header__title {
+  font-size: var(--text-lg);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.header__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.header__status {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+}
+
+/* ---- Main Content ---- */
+.main {
+  grid-area: main;
+  padding: var(--space-6);
+  overflow-y: auto;
+  max-width: var(--content-max-width);
+  width: 100%;
+}
+
+.main--centered {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  max-width: 100%;
+}
+
+.main--full {
+  max-width: 100%;
+  padding: 0;
+}
+
+/* ---- Page Layouts ---- */
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-6);
+  flex-wrap: wrap;
+  gap: var(--space-4);
+}
+
+.page-header__title {
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-bold);
+}
+
+.page-header__subtitle {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  margin-top: var(--space-1);
+}
+
+/* ---- Session Grid: Scenario Left | Biometrics Right ---- */
+.session-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-6);
+  height: calc(100vh - var(--header-height) - var(--space-12));
+}
+
+.session-grid__scenario {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  overflow-y: auto;
+}
+
+.session-grid__biometrics {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  overflow-y: auto;
+}
+
+/* ---- Content Grid Utilities ---- */
+.grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-4);
+}
+
+.grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-4);
+}
+
+.grid-4 {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-4);
+}
+
+.grid-auto-fill {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--space-4);
+}
+
+/* ---- Responsive Breakpoints ---- */
+@media (max-width: 1200px) {
+  .grid-4 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .app-shell {
+    grid-template-columns: 1fr;
+    grid-template-rows: var(--header-height) 1fr;
+    grid-template-areas:
+      "header"
+      "main";
+  }
+
+  .sidebar {
+    position: fixed;
+    left: -100%;
+    width: 280px;
+    z-index: var(--z-overlay);
+    transition: left var(--transition-slow);
+  }
+
+  .sidebar--open {
+    left: 0;
+  }
+
+  .main {
+    padding: var(--space-4);
+  }
+
+  .session-grid {
+    grid-template-columns: 1fr;
+    height: auto;
+  }
+
+  .grid-2,
+  .grid-3,
+  .grid-4 {
+    grid-template-columns: 1fr;
+  }
+
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 480px) {
+  .main {
+    padding: var(--space-3);
+  }
+
+  .header {
+    padding: 0 var(--space-4);
+  }
+}
+
+/* ---- Sidebar Overlay (mobile) ---- */
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: calc(var(--z-overlay) - 1);
+}
+
+.sidebar-overlay--visible {
+  display: block;
+}

@@ -1,0 +1,291 @@
+/* ============================================
+   G.R.I.P. Platform — Dashboard
+   ============================================ */
+
+/* ---- Stats Cards Grid ---- */
+.dashboard-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+}
+
+.stat-card {
+  background: var(--color-bg-raised);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  transition: var(--transition-shadow), border-color var(--transition-base);
+}
+
+.stat-card:hover {
+  border-color: var(--color-accent-muted);
+  box-shadow: var(--glow-cyan-sm);
+}
+
+.stat-card__label {
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: var(--space-2);
+}
+
+.stat-card__value {
+  font-family: var(--font-mono);
+  font-size: var(--text-3xl);
+  font-weight: var(--weight-bold);
+  color: var(--color-accent);
+  text-shadow: var(--text-glow-cyan);
+  line-height: 1;
+}
+
+.stat-card__value--success {
+  color: var(--color-success);
+  text-shadow: 0 0 10px rgba(0, 255, 136, 0.4);
+}
+
+.stat-card__value--warning {
+  color: var(--color-warning);
+  text-shadow: 0 0 10px rgba(255, 184, 0, 0.4);
+}
+
+.stat-card__delta {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  margin-top: var(--space-2);
+}
+
+.stat-card__delta--up {
+  color: var(--color-success);
+}
+
+.stat-card__delta--down {
+  color: var(--color-error);
+}
+
+.stat-card__delta--neutral {
+  color: var(--color-text-muted);
+}
+
+.stat-card__icon {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md);
+  background: var(--color-accent-dim);
+  color: var(--color-accent);
+  margin-bottom: var(--space-3);
+  font-size: var(--text-lg);
+}
+
+/* ---- NFI History Chart ---- */
+.nfi-chart-container {
+  background: var(--color-bg-raised);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  margin-bottom: var(--space-6);
+}
+
+.nfi-chart-container__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-4);
+}
+
+.nfi-chart-container__title {
+  font-size: var(--text-base);
+  font-weight: var(--weight-semibold);
+}
+
+.nfi-chart-container__filters {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.nfi-chart-container__canvas {
+  width: 100%;
+  height: 280px;
+  border-radius: var(--radius-md);
+}
+
+/* ---- Session List ---- */
+.session-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.session-list__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-4);
+}
+
+.session-list__title {
+  font-size: var(--text-base);
+  font-weight: var(--weight-semibold);
+}
+
+.session-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  background: var(--color-bg-raised);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4) var(--space-5);
+  cursor: pointer;
+  transition: var(--transition-all);
+}
+
+.session-item:hover {
+  border-color: var(--color-accent-muted);
+  box-shadow: var(--glow-cyan-sm);
+  transform: translateX(2px);
+}
+
+.session-item__number {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  min-width: 32px;
+}
+
+.session-item__info {
+  flex: 1;
+}
+
+.session-item__date {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--color-text-primary);
+}
+
+.session-item__meta {
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+  margin-top: var(--space-1);
+}
+
+.session-item__nfi {
+  font-family: var(--font-mono);
+  font-size: var(--text-xl);
+  font-weight: var(--weight-bold);
+  color: var(--color-accent);
+  text-shadow: var(--text-glow-cyan);
+}
+
+.session-item__arrow {
+  color: var(--color-text-muted);
+  font-size: var(--text-lg);
+  transition: var(--transition-transform);
+}
+
+.session-item:hover .session-item__arrow {
+  transform: translateX(4px);
+  color: var(--color-accent);
+}
+
+/* ---- Streak / Quick Stats ---- */
+.streak-display {
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+  background: var(--color-bg-raised);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5) var(--space-6);
+  margin-bottom: var(--space-6);
+}
+
+.streak-display__flame {
+  font-size: var(--text-4xl);
+  line-height: 1;
+}
+
+.streak-display__count {
+  font-family: var(--font-mono);
+  font-size: var(--text-4xl);
+  font-weight: var(--weight-bold);
+  color: var(--color-warning);
+  text-shadow: 0 0 12px rgba(255, 184, 0, 0.4);
+  line-height: 1;
+}
+
+.streak-display__label {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  margin-top: var(--space-1);
+}
+
+.quick-stats {
+  display: flex;
+  gap: var(--space-8);
+}
+
+.quick-stats__item {
+  display: flex;
+  flex-direction: column;
+}
+
+.quick-stats__value {
+  font-family: var(--font-mono);
+  font-size: var(--text-xl);
+  font-weight: var(--weight-bold);
+  color: var(--color-text-primary);
+}
+
+.quick-stats__label {
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+}
+
+/* ---- Dashboard Layout Sections ---- */
+.dashboard-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: var(--space-6);
+  margin-bottom: var(--space-6);
+}
+
+.dashboard-row--equal {
+  grid-template-columns: 1fr 1fr;
+}
+
+/* ---- Responsive ---- */
+@media (max-width: 1200px) {
+  .dashboard-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .dashboard-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .dashboard-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .streak-display {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .quick-stats {
+    flex-direction: column;
+    gap: var(--space-4);
+    align-items: center;
+  }
+}
