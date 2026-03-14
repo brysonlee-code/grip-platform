@@ -347,6 +347,237 @@ function _buildPatientInfo(info) {
     return wrapper;
 }
 
+/**
+ * Render a reaction time test card. Shows a target after a random delay;
+ * user clicks/taps the target as fast as possible.
+ * @param {HTMLElement} container - DOM element to render into.
+ * @param {number} testNumber - Current item number in the session.
+ * @param {number} totalItems - Total items in the session.
+ * @returns {Promise<{selectedIndex: number, responseTime: number, reactionTime: number}>}
+ */
+export function renderReactionTest(container, testNumber, totalItems) {
+    _injectStyles();
+    _injectReactionStyles();
+
+    return new Promise((resolve) => {
+        let resolved = false;
+        container.innerHTML = '';
+
+        const card = document.createElement('div');
+        card.className = 'scenario-card';
+
+        // Header
+        const header = document.createElement('div');
+        header.className = 'scenario-header';
+        header.textContent = `Reaction Test — ${testNumber} of ${totalItems}`;
+        card.appendChild(header);
+
+        // Instructions
+        const instructions = document.createElement('div');
+        instructions.className = 'rt-instructions';
+        instructions.innerHTML = `
+            <h3 style="margin:0 0 0.5rem; color:#00e5ff; font-size:1rem;">Reaction Time Test</h3>
+            <p style="margin:0; color:#b0b0cc; font-size:0.85rem;">
+                When the target appears, click it as fast as you can.
+                <br>Stay focused on the center of the screen.
+            </p>
+        `;
+        card.appendChild(instructions);
+
+        // Target area
+        const arena = document.createElement('div');
+        arena.className = 'rt-arena';
+
+        const waiting = document.createElement('div');
+        waiting.className = 'rt-waiting';
+        waiting.textContent = 'Wait for the target...';
+        arena.appendChild(waiting);
+
+        const target = document.createElement('button');
+        target.className = 'rt-target';
+        target.type = 'button';
+        target.textContent = 'CLICK!';
+        target.style.display = 'none';
+        arena.appendChild(target);
+
+        card.appendChild(arena);
+        container.appendChild(card);
+
+        // Show target after random delay (1.5–4 seconds)
+        const delay = 1500 + Math.random() * 2500;
+        let targetShownAt = 0;
+        let tooEarly = false;
+
+        // Detect early clicks
+        arena.addEventListener('click', (e) => {
+            if (resolved) return;
+            if (targetShownAt === 0 && !tooEarly) {
+                tooEarly = true;
+                waiting.textContent = 'Too early! Wait for the target...';
+                waiting.style.color = '#ff4060';
+                setTimeout(() => {
+                    if (!resolved) {
+                        tooEarly = false;
+                        waiting.textContent = 'Wait for the target...';
+                        waiting.style.color = '#8888aa';
+                    }
+                }, 1000);
+            }
+        });
+
+        const showTimer = setTimeout(() => {
+            if (resolved) return;
+            waiting.style.display = 'none';
+            target.style.display = 'flex';
+            targetShownAt = performance.now();
+
+            target.addEventListener('click', () => {
+                if (resolved) return;
+                resolved = true;
+                const reactionTime = performance.now() - targetShownAt;
+
+                // Show result
+                target.disabled = true;
+                target.textContent = `${Math.round(reactionTime)} ms`;
+                target.classList.add('rt-target--clicked');
+
+                const label = document.createElement('div');
+                label.className = 'rt-result-label';
+                if (reactionTime < 250) {
+                    label.textContent = 'Excellent';
+                    label.style.color = '#00ff88';
+                } else if (reactionTime < 400) {
+                    label.textContent = 'Good';
+                    label.style.color = '#00e5ff';
+                } else {
+                    label.textContent = 'Average';
+                    label.style.color = '#ffaa00';
+                }
+                arena.appendChild(label);
+
+                setTimeout(() => {
+                    resolve({
+                        selectedIndex: 0,
+                        responseTime: reactionTime,
+                        reactionTime,
+                        isReactionTest: true,
+                    });
+                }, FEEDBACK_DELAY);
+            });
+
+            // Auto-timeout after 5 seconds
+            setTimeout(() => {
+                if (resolved) return;
+                resolved = true;
+                target.disabled = true;
+                target.textContent = 'Timeout';
+                target.classList.add('rt-target--timeout');
+                setTimeout(() => {
+                    resolve({
+                        selectedIndex: -1,
+                        responseTime: 5000,
+                        reactionTime: 5000,
+                        isReactionTest: true,
+                    });
+                }, FEEDBACK_DELAY);
+            }, 5000);
+        }, delay);
+
+        // Cleanup timer if container is cleared externally
+        const observer = new MutationObserver(() => {
+            if (!container.contains(card)) {
+                clearTimeout(showTimer);
+                observer.disconnect();
+            }
+        });
+        observer.observe(container, { childList: true });
+    });
+}
+
+let _reactionStylesInjected = false;
+function _injectReactionStyles() {
+    if (_reactionStylesInjected) return;
+    _reactionStylesInjected = true;
+    const style = document.createElement('style');
+    style.id = 'grip-reaction-styles';
+    style.textContent = `
+        .rt-instructions {
+            padding: 1.25rem;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            text-align: center;
+        }
+        .rt-arena {
+            position: relative;
+            height: 280px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 1.25rem;
+            border-radius: 10px;
+            background: rgba(0,0,0,0.2);
+            border: 1px solid rgba(255,255,255,0.05);
+            cursor: default;
+            user-select: none;
+        }
+        .rt-waiting {
+            font-size: 1rem;
+            color: #8888aa;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+        .rt-target {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: radial-gradient(circle, #00e5ff 0%, #0088cc 100%);
+            border: 3px solid rgba(0,229,255,0.6);
+            color: #fff;
+            font-size: 1.1rem;
+            font-weight: 700;
+            font-family: 'JetBrains Mono', monospace;
+            cursor: pointer;
+            box-shadow: 0 0 30px rgba(0,229,255,0.4), 0 0 60px rgba(0,229,255,0.15);
+            animation: rtPulse 0.8s ease-in-out infinite alternate;
+            transition: all 0.15s ease;
+        }
+        .rt-target:hover:not(:disabled) {
+            transform: scale(1.05);
+            box-shadow: 0 0 40px rgba(0,229,255,0.6);
+        }
+        .rt-target:active:not(:disabled) {
+            transform: scale(0.95);
+        }
+        @keyframes rtPulse {
+            from { box-shadow: 0 0 30px rgba(0,229,255,0.4); }
+            to { box-shadow: 0 0 50px rgba(0,229,255,0.6), 0 0 80px rgba(0,229,255,0.2); }
+        }
+        .rt-target--clicked {
+            background: radial-gradient(circle, #00ff88 0%, #00cc66 100%) !important;
+            border-color: #00ff88 !important;
+            box-shadow: 0 0 30px rgba(0,255,136,0.5) !important;
+            animation: none !important;
+            font-size: 1.3rem;
+        }
+        .rt-target--timeout {
+            background: radial-gradient(circle, #ff4060 0%, #cc2244 100%) !important;
+            border-color: #ff4060 !important;
+            box-shadow: 0 0 30px rgba(255,64,96,0.5) !important;
+            animation: none !important;
+        }
+        .rt-result-label {
+            position: absolute;
+            bottom: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+        }
+    `;
+    document.head.appendChild(style);
+}
+
 function _buildVitalSigns(vitals) {
     const wrapper = document.createElement('div');
     wrapper.className = 'vitals-grid';

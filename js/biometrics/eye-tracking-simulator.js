@@ -146,6 +146,20 @@ export class EyeTrackingSimulator {
         /** @type {number} Previous gaze Y (for scanpath). */
         this._prevY = this._y;
 
+        // Enhanced metrics
+        /** @type {number[]} Saccade velocities (px/s) for stats. */
+        this._saccadeVelocities = [];
+        /** @type {number[]} Pupil dilation samples for trend analysis. */
+        this._pupilHistory = [];
+        /** @type {number} Max pupil samples to keep. */
+        this._pupilHistoryMax = 300;
+        /** @type {number[][]} Heatmap grid (10x10 bins) counting gaze time per region. */
+        this._heatmap = Array.from({ length: 10 }, () => new Float32Array(10));
+        /** @type {number[]} Blink durations (ms). */
+        this._blinkDurations = [];
+        /** @type {number} Sum of squared fixation durations for variance. */
+        this._fixDurationSqSum = 0;
+
         // Start in a fixation
         this._enterFixation();
     }
@@ -280,6 +294,7 @@ export class EyeTrackingSimulator {
                 this._updateFixation(dtMs);
                 if (this._stateTimer <= 0) {
                     this._fixationDurations.push(this._stateDuration);
+                    this._fixDurationSqSum += this._stateDuration * this._stateDuration;
                     this._fixationCount++;
                     this._enterSaccade();
                 }
@@ -289,6 +304,7 @@ export class EyeTrackingSimulator {
                 this._updateSaccade();
                 if (this._stateTimer <= 0) {
                     this._saccadeCount++;
+                    this._saccadeVelocities.push(this._saccadeVelocity);
                     this._x = this._saccadeTargetX;
                     this._y = this._saccadeTargetY;
                     this._enterFixation();
@@ -298,6 +314,7 @@ export class EyeTrackingSimulator {
             case State.BLINK:
                 // During blink, gaze position stays at last known location
                 if (this._stateTimer <= 0) {
+                    this._blinkDurations.push(this._stateDuration);
                     this._blinkCount++;
                     this._enterFixation();
                 }
@@ -314,6 +331,19 @@ export class EyeTrackingSimulator {
         // Track focus zone time
         if (this._isInFocusZone(this._x, this._y) && this._state !== State.BLINK) {
             this._focusZoneTime += dtMs;
+        }
+
+        // Update heatmap (10x10 grid)
+        if (this._state !== State.BLINK) {
+            const hx = clamp(Math.floor((this._x / this._width) * 10), 0, 9);
+            const hy = clamp(Math.floor((this._y / this._height) * 10), 0, 9);
+            this._heatmap[hy][hx] += dtMs;
+        }
+
+        // Record pupil dilation history
+        this._pupilHistory.push(this._pupilDilation);
+        if (this._pupilHistory.length > this._pupilHistoryMax) {
+            this._pupilHistory.shift();
         }
     }
 
@@ -392,7 +422,8 @@ export class EyeTrackingSimulator {
 
     /**
      * Return aggregate eye tracking metrics accumulated since the last reset.
-     * @returns {{ avgFixationDuration: number, fixationCount: number, saccadeCount: number, blinkRate: number, scanPathLength: number, focusZoneRatio: number }}
+     * Includes enhanced metrics: saccade velocity stats, pupil dilation trend,
+     * fixation duration variability, heatmap, and blink duration.
      */
     getMetrics() {
         const avgFixation = this._fixationDurations.length > 0
@@ -406,14 +437,65 @@ export class EyeTrackingSimulator {
             ? this._focusZoneTime / this._totalTime
             : 0;
 
+        // Saccade velocity stats
+        let avgSaccadeVelocity = 0;
+        let peakSaccadeVelocity = 0;
+        if (this._saccadeVelocities.length > 0) {
+            avgSaccadeVelocity = this._saccadeVelocities.reduce((a, b) => a + b, 0) / this._saccadeVelocities.length;
+            peakSaccadeVelocity = Math.max(...this._saccadeVelocities);
+        }
+
+        // Fixation duration variability (std dev)
+        let fixationDurationStd = 0;
+        if (this._fixationDurations.length > 1) {
+            const variance = (this._fixDurationSqSum / this._fixationDurations.length) - (avgFixation * avgFixation);
+            fixationDurationStd = Math.sqrt(Math.max(0, variance));
+        }
+
+        // Pupil dilation trend (slope over recent samples)
+        let pupilTrend = 0;
+        let avgPupilDilation = this._pupilBaseline;
+        if (this._pupilHistory.length > 10) {
+            avgPupilDilation = this._pupilHistory.reduce((a, b) => a + b, 0) / this._pupilHistory.length;
+            // Simple linear trend: compare first half vs second half mean
+            const mid = Math.floor(this._pupilHistory.length / 2);
+            const firstHalf = this._pupilHistory.slice(0, mid);
+            const secondHalf = this._pupilHistory.slice(mid);
+            const firstMean = firstHalf.reduce((a, b) => a + b, 0) / firstHalf.length;
+            const secondMean = secondHalf.reduce((a, b) => a + b, 0) / secondHalf.length;
+            pupilTrend = secondMean - firstMean; // positive = dilating (increasing load)
+        }
+
+        // Average blink duration
+        const avgBlinkDuration = this._blinkDurations.length > 0
+            ? this._blinkDurations.reduce((a, b) => a + b, 0) / this._blinkDurations.length
+            : 0;
+
         return {
+            // Core metrics
             avgFixationDuration: avgFixation,
             fixationCount: this._fixationCount,
             saccadeCount: this._saccadeCount,
             blinkRate,
             scanPathLength: this._scanPathLength,
             focusZoneRatio,
+            // Enhanced metrics
+            avgSaccadeVelocity,
+            peakSaccadeVelocity,
+            fixationDurationStd,
+            avgPupilDilation,
+            pupilTrend,
+            avgBlinkDuration,
+            blinkCount: this._blinkCount,
         };
+    }
+
+    /**
+     * Return the gaze heatmap as a 10×10 grid of accumulated dwell time (ms).
+     * @returns {number[][]}
+     */
+    getHeatmap() {
+        return this._heatmap.map(row => Array.from(row));
     }
 
     /**
@@ -438,6 +520,11 @@ export class EyeTrackingSimulator {
         this._blinkCount = 0;
         this._scanPathLength = 0;
         this._focusZoneTime = 0;
+        this._saccadeVelocities = [];
+        this._pupilHistory = [];
+        this._heatmap = Array.from({ length: 10 }, () => new Float32Array(10));
+        this._blinkDurations = [];
+        this._fixDurationSqSum = 0;
         this._nextBlinkIn = this._scheduleNextBlink();
         this._enterFixation();
     }

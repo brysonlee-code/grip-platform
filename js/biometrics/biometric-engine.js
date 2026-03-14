@@ -162,6 +162,7 @@ export class BiometricEngine {
             eyeTracking: {
                 ...this._eyeTracking.getState(),
                 metrics: this._eyeTracking.getMetrics(),
+                heatmap: this._eyeTracking.getHeatmap(),
             },
             voice: {
                 ...this._voice.getMetrics(),

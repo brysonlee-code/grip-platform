@@ -8,7 +8,7 @@
 import { SessionState, SessionStates } from './session-state.js';
 import { SessionTimer, ScenarioTimer } from './timer.js';
 import { ResponseHandler } from './response-handler.js';
-import { renderScenario } from './scenario-renderer.js';
+import { renderScenario, renderReactionTest } from './scenario-renderer.js';
 import { DifficultyController } from '../scenario/difficulty-controller.js';
 import { EEGSimulator } from '../biometrics/eeg-simulator.js';
 import { BiometricEngine } from '../biometrics/biometric-engine.js';
@@ -106,6 +106,12 @@ export class SessionController {
 
         /** @type {boolean} Whether the session is currently in a breather pause. */
         this._inBreather = false;
+
+        /** @type {number[]} Reaction time test results (ms). */
+        this._reactionTimes = [];
+
+        /** @type {Set<number>} Scenario indices that are reaction time tests (0-based). */
+        this._reactionTestSlots = new Set([2, 5]); // positions 3 and 6 out of 8
     }
 
     /**
@@ -196,11 +202,17 @@ export class SessionController {
     }
 
     /**
-     * Load and render the next scenario at the current difficulty level.
+     * Load and render the next scenario or reaction time test at the current difficulty level.
      */
     async nextScenario() {
         const state = this._sessionState.getState();
         if (state !== SessionStates.ACTIVE) return;
+
+        // Check if this slot is a reaction time test
+        if (this._reactionTestSlots.has(this._scenarioIndex)) {
+            await this._runReactionTest();
+            return;
+        }
 
         const difficulty = this._difficultyController.getDifficulty();
         this._sessionState.update({ difficulty });
@@ -245,6 +257,62 @@ export class SessionController {
                 console.error('[SessionController] Scenario render failed:', err);
                 // Auto-advance on render failure
                 this.handleResponse(-1);
+            }
+        }
+    }
+
+    /**
+     * Run a reaction time test at the current scenario slot.
+     * Records the result and advances.
+     * @private
+     */
+    async _runReactionTest() {
+        if (!this._scenarioContainer) return;
+
+        // Set a dummy scenario so handleResponse doesn't bail
+        this._currentScenario = {
+            id: `rt-test-${this._scenarioIndex + 1}`,
+            type: 'reaction-time',
+            correctIndex: 0,
+            timeLimit: 0,
+        };
+
+        try {
+            const result = await renderReactionTest(
+                this._scenarioContainer,
+                this._scenarioIndex + 1,
+                this._totalScenarios
+            );
+
+            // Store reaction time
+            this._reactionTimes.push(result.reactionTime);
+
+            // Record as a response (selectedIndex 0 = clicked, -1 = timeout)
+            this._responseHandler.recordResponse(
+                this._currentScenario.id,
+                result.selectedIndex,
+                0, // correctIndex is always 0 (clicked = correct)
+                result.reactionTime,
+                this._difficultyController.getDifficulty()
+            );
+
+            // Advance to next item
+            this._scenarioIndex++;
+            this._sessionState.update({ scenarioIndex: this._scenarioIndex });
+
+            if (this._scenarioIndex >= this._totalScenarios) {
+                this.endSession();
+            } else {
+                this.nextScenario();
+            }
+        } catch (err) {
+            console.error('[SessionController] Reaction test failed:', err);
+            this._scenarioIndex++;
+            this._sessionState.update({ scenarioIndex: this._scenarioIndex });
+            if (this._scenarioIndex >= this._totalScenarios) {
+                this.endSession();
+            } else {
+                this.nextScenario();
             }
         }
     }
@@ -322,6 +390,7 @@ export class SessionController {
             difficultyHistory,
             nfiHistory: [...this._nfiHistory],
             biometricHistory: [...this._biometricHistory],
+            reactionTimes: [...this._reactionTimes],
             finalNfi: this._smoothedNfi,
             finalDifficulty: this._difficultyController.getDifficulty(),
             totalTime: this._sessionTimer.getElapsed(),
@@ -344,6 +413,7 @@ export class SessionController {
 
         this._nfiHistory = [];
         this._biometricHistory = [];
+        this._reactionTimes = [];
         this._currentScenario = null;
         this._scenarioIndex = 0;
         this._scenarioContainer = null;
@@ -759,6 +829,13 @@ export function renderSessionPage(container) {
                 fixationCount: eyeMetrics.fixationCount ?? 0,
                 avgFixationDuration: eyeMetrics.avgFixationDuration ?? 0,
                 blinkRate: eyeMetrics.blinkRate ?? 0,
+                pupilDilation: eyeState.pupilDilation ?? 4.0,
+                avgSaccadeVelocity: eyeMetrics.avgSaccadeVelocity ?? 0,
+                peakSaccadeVelocity: eyeMetrics.peakSaccadeVelocity ?? 0,
+                fixationDurationStd: eyeMetrics.fixationDurationStd ?? 0,
+                pupilTrend: eyeMetrics.pupilTrend ?? 0,
+                focusZoneRatio: eyeMetrics.focusZoneRatio ?? 0,
+                scanPathLength: eyeMetrics.scanPathLength ?? 0,
             },
             voice: {
                 jitter: snapshot.voice?.jitter ?? 0,
