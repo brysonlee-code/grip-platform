@@ -8,7 +8,7 @@
 import { SessionState, SessionStates } from './session-state.js';
 import { SessionTimer, ScenarioTimer } from './timer.js';
 import { ResponseHandler } from './response-handler.js';
-import { renderScenario, renderReactionTest } from './scenario-renderer.js';
+import { renderScenario, renderReactionTest, renderVocalPrompt } from './scenario-renderer.js';
 import { DifficultyController } from '../scenario/difficulty-controller.js';
 import { EEGSimulator } from '../biometrics/eeg-simulator.js';
 import { BiometricEngine } from '../biometrics/biometric-engine.js';
@@ -110,8 +110,14 @@ export class SessionController {
         /** @type {number[]} Reaction time test results (ms). */
         this._reactionTimes = [];
 
+        /** @type {Object[]} Vocal prompt results (tongue twister readings). */
+        this._vocalResults = [];
+
         /** @type {Set<number>} Scenario indices that are reaction time tests (0-based). */
-        this._reactionTestSlots = new Set([2, 5]); // positions 3 and 6 out of 8
+        this._reactionTestSlots = new Set([2, 6]); // positions 3 and 7 out of 10
+
+        /** @type {Set<number>} Scenario indices that are vocal prompts (0-based). */
+        this._vocalPromptSlots = new Set([4, 8]); // positions 5 and 9 out of 10
     }
 
     /**
@@ -211,6 +217,12 @@ export class SessionController {
         // Check if this slot is a reaction time test
         if (this._reactionTestSlots.has(this._scenarioIndex)) {
             await this._runReactionTest();
+            return;
+        }
+
+        // Check if this slot is a vocal prompt
+        if (this._vocalPromptSlots.has(this._scenarioIndex)) {
+            await this._runVocalPrompt();
             return;
         }
 
@@ -318,6 +330,68 @@ export class SessionController {
     }
 
     /**
+     * Run a vocal prompt (tongue twister) at the current scenario slot.
+     * The user reads aloud while voice biometrics are captured.
+     * @private
+     */
+    async _runVocalPrompt() {
+        if (!this._scenarioContainer) return;
+
+        this._currentScenario = {
+            id: `vocal-${this._scenarioIndex + 1}`,
+            type: 'vocal-prompt',
+            correctIndex: 0,
+            timeLimit: 0,
+        };
+
+        // Increase cognitive load slightly during vocal tasks
+        this._cognitiveLoad = clamp(this._cognitiveLoad + 0.1, 0.1, 0.9);
+        this._eegSimulator.setCognitiveLoad(this._cognitiveLoad);
+
+        try {
+            const result = await renderVocalPrompt(
+                this._scenarioContainer,
+                this._scenarioIndex + 1,
+                this._totalScenarios
+            );
+
+            this._vocalResults.push({
+                promptIndex: result.promptIndex,
+                phrase: result.phrase,
+                duration: result.duration,
+                timestamp: Date.now(),
+            });
+
+            // Record as a response
+            this._responseHandler.recordResponse(
+                this._currentScenario.id,
+                0,
+                0,
+                result.duration,
+                this._difficultyController.getDifficulty()
+            );
+
+            this._scenarioIndex++;
+            this._sessionState.update({ scenarioIndex: this._scenarioIndex });
+
+            if (this._scenarioIndex >= this._totalScenarios) {
+                this.endSession();
+            } else {
+                this.nextScenario();
+            }
+        } catch (err) {
+            console.error('[SessionController] Vocal prompt failed:', err);
+            this._scenarioIndex++;
+            this._sessionState.update({ scenarioIndex: this._scenarioIndex });
+            if (this._scenarioIndex >= this._totalScenarios) {
+                this.endSession();
+            } else {
+                this.nextScenario();
+            }
+        }
+    }
+
+    /**
      * Pause the session.
      */
     pauseSession() {
@@ -391,6 +465,7 @@ export class SessionController {
             nfiHistory: [...this._nfiHistory],
             biometricHistory: [...this._biometricHistory],
             reactionTimes: [...this._reactionTimes],
+            vocalResults: [...this._vocalResults],
             finalNfi: this._smoothedNfi,
             finalDifficulty: this._difficultyController.getDifficulty(),
             totalTime: this._sessionTimer.getElapsed(),
@@ -414,6 +489,7 @@ export class SessionController {
         this._nfiHistory = [];
         this._biometricHistory = [];
         this._reactionTimes = [];
+        this._vocalResults = [];
         this._currentScenario = null;
         this._scenarioIndex = 0;
         this._scenarioContainer = null;
@@ -779,7 +855,7 @@ export function renderSessionPage(container) {
         <div style="padding: 0.75rem; height: 100vh; display: flex; flex-direction: column; overflow: hidden; box-sizing: border-box;">
             <div style="display: flex; align-items: center; gap: 1.5rem; padding: 0.5rem 0.25rem; margin-bottom: 0.5rem; font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; color: #8888aa; flex-shrink: 0;">
                 <span id="session-timer" style="font-size: 1.1rem; color: #00e5ff; font-weight: 600;">00:00</span>
-                <span id="scenario-counter" style="color: #d0d0e0;">0 / 8</span>
+                <span id="scenario-counter" style="color: #d0d0e0;">0 / 10</span>
                 <span style="display: flex; align-items: center; gap: 0.4rem;">
                     <span>Difficulty</span>
                     <span id="difficulty-value" style="color: #00e5ff; font-weight: 600;">5</span>

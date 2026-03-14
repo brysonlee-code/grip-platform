@@ -494,6 +494,288 @@ export function renderReactionTest(container, testNumber, totalItems) {
     });
 }
 
+/**
+ * Tongue twister prompts for vocal biomarker capture.
+ * Designed to stress articulation, prosody, and vocal stability —
+ * markers that correlate with cognitive load and fatigue.
+ */
+const TONGUE_TWISTERS = [
+    "The sixth sick sheik's sixth sheep's sick.",
+    "Red lorry, yellow lorry, red lorry, yellow lorry.",
+    "She sells seashells by the seashore, the shells she sells are seashells, I'm sure.",
+    "Peter Piper picked a peck of pickled peppers. A peck of pickled peppers Peter Piper picked.",
+    "How much wood would a woodchuck chuck if a woodchuck could chuck wood?",
+    "Unique New York, unique New York, you know you need unique New York.",
+    "Toy boat, toy boat, toy boat, toy boat, toy boat.",
+    "The thirty-three thieves thought that they thrilled the throne throughout Thursday.",
+    "Six sleek swans swam swiftly southwards.",
+    "Freshly fried fresh flesh of flying fish.",
+    "Which wristwatches are Swiss wristwatches?",
+    "A proper copper coffee pot propped up on a proper copper coffee pot stand.",
+];
+
+/** Track which tongue twisters have been used this session. */
+let _usedTwisterIndices = [];
+
+/**
+ * Render a vocal prompt card. Displays a tongue twister for the user
+ * to read aloud while voice biometrics are captured.
+ * @param {HTMLElement} container - DOM element to render into.
+ * @param {number} itemNumber - Current item number in the session.
+ * @param {number} totalItems - Total items in the session.
+ * @returns {Promise<{promptIndex: number, phrase: string, duration: number}>}
+ */
+export function renderVocalPrompt(container, itemNumber, totalItems) {
+    _injectStyles();
+    _injectVocalStyles();
+
+    return new Promise((resolve) => {
+        let resolved = false;
+        container.innerHTML = '';
+
+        // Pick a tongue twister that hasn't been used yet
+        let availableIndices = TONGUE_TWISTERS.map((_, i) => i)
+            .filter(i => !_usedTwisterIndices.includes(i));
+        if (availableIndices.length === 0) {
+            _usedTwisterIndices = [];
+            availableIndices = TONGUE_TWISTERS.map((_, i) => i);
+        }
+        const promptIndex = availableIndices[Math.floor(Math.random() * availableIndices.length)];
+        _usedTwisterIndices.push(promptIndex);
+        const phrase = TONGUE_TWISTERS[promptIndex];
+
+        const card = document.createElement('div');
+        card.className = 'scenario-card';
+
+        // Header
+        const header = document.createElement('div');
+        header.className = 'scenario-header';
+        header.textContent = `Vocal Assessment \u2014 ${itemNumber} of ${totalItems}`;
+        card.appendChild(header);
+
+        // Instructions
+        const instructions = document.createElement('div');
+        instructions.className = 'vocal-instructions';
+        instructions.innerHTML = `
+            <div class="vocal-icon">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                    <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                    <line x1="12" y1="19" x2="12" y2="23"/>
+                    <line x1="8" y1="23" x2="16" y2="23"/>
+                </svg>
+            </div>
+            <h3 class="vocal-title">Read Aloud</h3>
+            <p class="vocal-subtitle">Read the phrase below clearly and at a natural pace.<br>Voice metrics are being captured.</p>
+        `;
+        card.appendChild(instructions);
+
+        // Tongue twister display
+        const promptBox = document.createElement('div');
+        promptBox.className = 'vocal-prompt-box';
+
+        const quoteOpen = document.createElement('span');
+        quoteOpen.className = 'vocal-quote';
+        quoteOpen.textContent = '\u201C';
+
+        const promptText = document.createElement('span');
+        promptText.className = 'vocal-prompt-text';
+        promptText.textContent = phrase;
+
+        const quoteClose = document.createElement('span');
+        quoteClose.className = 'vocal-quote';
+        quoteClose.textContent = '\u201D';
+
+        promptBox.appendChild(quoteOpen);
+        promptBox.appendChild(promptText);
+        promptBox.appendChild(quoteClose);
+        card.appendChild(promptBox);
+
+        // Recording indicator + timer
+        const recordingBar = document.createElement('div');
+        recordingBar.className = 'vocal-recording';
+
+        const dot = document.createElement('span');
+        dot.className = 'vocal-recording-dot';
+
+        const recLabel = document.createElement('span');
+        recLabel.className = 'vocal-recording-label';
+        recLabel.textContent = 'Capturing voice metrics...';
+
+        const timerLabel = document.createElement('span');
+        timerLabel.className = 'vocal-timer';
+        timerLabel.textContent = '0.0s';
+
+        recordingBar.appendChild(dot);
+        recordingBar.appendChild(recLabel);
+        recordingBar.appendChild(timerLabel);
+        card.appendChild(recordingBar);
+
+        // Done button
+        const doneWrap = document.createElement('div');
+        doneWrap.className = 'vocal-done-wrap';
+
+        const doneBtn = document.createElement('button');
+        doneBtn.type = 'button';
+        doneBtn.className = 'vocal-done-btn';
+        doneBtn.textContent = 'Done Reading';
+
+        doneWrap.appendChild(doneBtn);
+        card.appendChild(doneWrap);
+
+        container.appendChild(card);
+
+        // Timer
+        const startTime = performance.now();
+        const timerInterval = setInterval(() => {
+            if (resolved) return;
+            const elapsed = (performance.now() - startTime) / 1000;
+            timerLabel.textContent = `${elapsed.toFixed(1)}s`;
+        }, 100);
+
+        doneBtn.addEventListener('click', () => {
+            if (resolved) return;
+            resolved = true;
+            clearInterval(timerInterval);
+            const duration = performance.now() - startTime;
+
+            // Show completion feedback
+            dot.style.background = '#00ff88';
+            dot.style.animation = 'none';
+            recLabel.textContent = 'Captured';
+            recLabel.style.color = '#00ff88';
+            doneBtn.disabled = true;
+            doneBtn.textContent = 'Recorded';
+            doneBtn.style.opacity = '0.6';
+
+            setTimeout(() => {
+                resolve({ promptIndex, phrase, duration });
+            }, FEEDBACK_DELAY);
+        });
+
+        // Auto-complete after 20 seconds
+        setTimeout(() => {
+            if (resolved) return;
+            resolved = true;
+            clearInterval(timerInterval);
+            const duration = performance.now() - startTime;
+
+            dot.style.background = '#ffaa00';
+            dot.style.animation = 'none';
+            recLabel.textContent = 'Time limit reached';
+            recLabel.style.color = '#ffaa00';
+            doneBtn.disabled = true;
+
+            setTimeout(() => {
+                resolve({ promptIndex, phrase, duration });
+            }, FEEDBACK_DELAY);
+        }, 20000);
+    });
+}
+
+let _vocalStylesInjected = false;
+function _injectVocalStyles() {
+    if (_vocalStylesInjected) return;
+    _vocalStylesInjected = true;
+    const style = document.createElement('style');
+    style.id = 'grip-vocal-styles';
+    style.textContent = `
+        .vocal-instructions {
+            padding: 1.5rem 1.25rem 1rem;
+            text-align: center;
+        }
+        .vocal-icon {
+            margin-bottom: 0.75rem;
+        }
+        .vocal-title {
+            margin: 0 0 0.4rem;
+            color: #00e5ff;
+            font-size: 1.1rem;
+            font-weight: 700;
+        }
+        .vocal-subtitle {
+            margin: 0;
+            color: #8888aa;
+            font-size: 0.8rem;
+            line-height: 1.5;
+        }
+        .vocal-prompt-box {
+            margin: 1rem 1.25rem;
+            padding: 1.5rem 2rem;
+            background: rgba(0,229,255,0.04);
+            border: 1px solid rgba(0,229,255,0.15);
+            border-radius: 10px;
+            text-align: center;
+            line-height: 1.8;
+        }
+        .vocal-quote {
+            color: rgba(0,229,255,0.4);
+            font-size: 2rem;
+            vertical-align: -0.2em;
+            font-family: Georgia, serif;
+        }
+        .vocal-prompt-text {
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: #ffffff;
+            letter-spacing: 0.01em;
+        }
+        .vocal-recording {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            padding: 0.75rem 1.25rem;
+            border-top: 1px solid rgba(255,255,255,0.05);
+        }
+        .vocal-recording-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #ff4060;
+            flex-shrink: 0;
+            animation: vocalPulse 1s ease-in-out infinite;
+        }
+        @keyframes vocalPulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+        .vocal-recording-label {
+            font-size: 0.8rem;
+            color: #8888aa;
+            flex: 1;
+        }
+        .vocal-timer {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            color: #00e5ff;
+            font-weight: 600;
+        }
+        .vocal-done-wrap {
+            padding: 1rem 1.25rem 1.25rem;
+            text-align: center;
+        }
+        .vocal-done-btn {
+            padding: 0.7rem 2.5rem;
+            background: rgba(0,229,255,0.12);
+            border: 1px solid rgba(0,229,255,0.3);
+            border-radius: 8px;
+            color: #00e5ff;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .vocal-done-btn:hover:not(:disabled) {
+            background: rgba(0,229,255,0.2);
+            border-color: rgba(0,229,255,0.5);
+        }
+        .vocal-done-btn:disabled {
+            cursor: default;
+        }
+    `;
+    document.head.appendChild(style);
+}
+
 let _reactionStylesInjected = false;
 function _injectReactionStyles() {
     if (_reactionStylesInjected) return;
