@@ -1,109 +1,135 @@
 /**
  * Authentication Controller
- * G.R.I.P. Platform — Firebase Auth wrapper with Firestore profile creation
+ * G.R.I.P. Platform — Firebase Auth wrapper with demo mode support
  * @module auth/auth-controller
  */
 
-import { auth, db } from '../config/firebase-config.js';
+import { auth, DEMO_MODE } from '../config/firebase-config.js';
 
-import {
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  signOut as firebaseSignOut,
-  onAuthStateChanged,
-} from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
+// ───────────────────────────────────────────────────────────────────
+// Demo Mode — localStorage-backed auth
+// ───────────────────────────────────────────────────────────────────
 
-import {
-  doc,
-  setDoc,
-  serverTimestamp,
-} from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
+if (DEMO_MODE) {
+    // All functions below handle demo mode via the mock auth object.
+    // No Firebase SDK imports needed.
+}
+
+// ───────────────────────────────────────────────────────────────────
+// Dynamic Firebase imports (only when NOT in demo mode)
+// ───────────────────────────────────────────────────────────────────
+
+let firebaseAuth = null;
+let firebaseFirestore = null;
+
+async function loadFirebaseModules() {
+    if (DEMO_MODE) return;
+    if (!firebaseAuth) {
+        firebaseAuth = await import('https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js');
+    }
+    if (!firebaseFirestore) {
+        firebaseFirestore = await import('https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js');
+    }
+}
 
 /**
- * Create a new user account and initialize their Firestore profile.
- * @param {string} email
- * @param {string} password
- * @returns {Promise<import('firebase/auth').UserCredential>}
+ * Create a new user account.
+ * In demo mode, immediately signs in the demo user.
  */
 export async function signUp(email, password) {
-  try {
-    const credential = await createUserWithEmailAndPassword(auth, email, password);
+    if (DEMO_MODE) {
+        auth._signIn();
+        return { user: auth.currentUser };
+    }
 
-    // Create initial user profile document
-    await setDoc(doc(db, 'users', credential.user.uid), {
-      email: credential.user.email,
-      createdAt: serverTimestamp(),
-      sessionsCompleted: 0,
-      lastCalibration: null,
-      baselineNFI: null,
-      settings: {
-        difficulty: 5,
-        scenarioPreferences: [],
-      },
-    });
-
-    return credential;
-  } catch (err) {
-    throw new Error(mapAuthError(err.code));
-  }
+    await loadFirebaseModules();
+    try {
+        const credential = await firebaseAuth.createUserWithEmailAndPassword(auth, email, password);
+        const { doc, setDoc, serverTimestamp } = firebaseFirestore;
+        const { db } = await import('../config/firebase-config.js');
+        await setDoc(doc(db, 'users', credential.user.uid), {
+            email: credential.user.email,
+            createdAt: serverTimestamp(),
+            sessionsCompleted: 0,
+            lastCalibration: null,
+            baselineNFI: null,
+            settings: { difficulty: 5, scenarioPreferences: [] },
+        });
+        return credential;
+    } catch (err) {
+        throw new Error(mapAuthError(err.code));
+    }
 }
 
 /**
  * Sign in an existing user.
- * @param {string} email
- * @param {string} password
- * @returns {Promise<import('firebase/auth').UserCredential>}
+ * In demo mode, immediately signs in the demo user.
  */
 export async function signIn(email, password) {
-  try {
-    return await signInWithEmailAndPassword(auth, email, password);
-  } catch (err) {
-    throw new Error(mapAuthError(err.code));
-  }
+    if (DEMO_MODE) {
+        auth._signIn();
+        return { user: auth.currentUser };
+    }
+
+    await loadFirebaseModules();
+    try {
+        return await firebaseAuth.signInWithEmailAndPassword(auth, email, password);
+    } catch (err) {
+        throw new Error(mapAuthError(err.code));
+    }
 }
 
 /**
  * Sign out the current user.
- * @returns {Promise<void>}
  */
 export async function signOut() {
-  try {
-    await firebaseSignOut(auth);
-  } catch (err) {
-    throw new Error('Sign-out failed. Please try again.');
-  }
+    if (DEMO_MODE) {
+        auth._signOut();
+        return;
+    }
+
+    await loadFirebaseModules();
+    try {
+        await firebaseAuth.signOut(auth);
+    } catch (err) {
+        throw new Error('Sign-out failed. Please try again.');
+    }
 }
 
 /**
  * Get the currently signed-in user (synchronous snapshot).
- * @returns {import('firebase/auth').User | null}
  */
 export function getCurrentUser() {
-  return auth.currentUser;
+    return auth.currentUser;
 }
 
 /**
  * Subscribe to authentication state changes.
- * @param {(user: import('firebase/auth').User | null) => void} callback
- * @returns {import('firebase/auth').Unsubscribe}
  */
 export function onAuthChange(callback) {
-  return onAuthStateChanged(auth, callback);
+    if (DEMO_MODE) {
+        return auth.onAuthStateChanged(callback);
+    }
+    // For real Firebase, dynamically import
+    import('https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js').then(mod => {
+        mod.onAuthStateChanged(auth, callback);
+    });
+    return () => {};
 }
 
-/* ---- Error code → human-readable message mapping ---- */
+/* ---- Error code mapping ---- */
 function mapAuthError(code) {
-  const messages = {
-    'auth/email-already-in-use':    'An account with this email already exists.',
-    'auth/invalid-email':           'Please enter a valid email address.',
-    'auth/operation-not-allowed':   'Email/password sign-in is not enabled. Contact support.',
-    'auth/weak-password':           'Password must be at least 6 characters.',
-    'auth/user-disabled':           'This account has been disabled.',
-    'auth/user-not-found':          'No account found with this email.',
-    'auth/wrong-password':          'Incorrect password. Please try again.',
-    'auth/invalid-credential':      'Invalid credentials. Please check your email and password.',
-    'auth/too-many-requests':       'Too many failed attempts. Please wait and try again.',
-    'auth/network-request-failed':  'Network error. Check your connection and try again.',
-  };
-  return messages[code] || `Authentication error (${code}). Please try again.`;
+    const messages = {
+        'auth/email-already-in-use':    'An account with this email already exists.',
+        'auth/invalid-email':           'Please enter a valid email address.',
+        'auth/operation-not-allowed':   'Email/password sign-in is not enabled.',
+        'auth/weak-password':           'Password must be at least 6 characters.',
+        'auth/user-disabled':           'This account has been disabled.',
+        'auth/user-not-found':          'No account found with this email.',
+        'auth/wrong-password':          'Incorrect password.',
+        'auth/invalid-credential':      'Invalid credentials.',
+        'auth/too-many-requests':       'Too many failed attempts. Please wait.',
+        'auth/network-request-failed':  'Network error.',
+    };
+    return messages[code] || `Authentication error (${code}).`;
 }

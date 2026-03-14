@@ -205,45 +205,47 @@ export class SessionController {
         const difficulty = this._difficultyController.getDifficulty();
         this._sessionState.update({ difficulty });
 
-        // Obtain the next scenario
+        // Obtain the next scenario (with error fallback)
         let scenario;
-        if (this._getScenarioFn) {
-            scenario = this._getScenarioFn(difficulty);
-        } else {
+        try {
+            if (this._getScenarioFn) {
+                scenario = this._getScenarioFn(difficulty);
+            } else {
+                scenario = this._generatePlaceholderScenario(difficulty);
+            }
+        } catch (err) {
+            console.error('[SessionController] Scenario generation failed:', err);
             scenario = this._generatePlaceholderScenario(difficulty);
+        }
+
+        if (!scenario) {
+            console.error('[SessionController] No scenario returned, using placeholder');
+            scenario = this._generatePlaceholderScenario(difficulty);
+        }
+
+        // Normalize options: ensure they are plain strings for the renderer
+        if (scenario.options && scenario.options.length > 0 && typeof scenario.options[0] === 'object') {
+            const correctIdx = scenario.correctIndex;
+            scenario.options = scenario.options.map(o => o.text || String(o));
         }
 
         this._currentScenario = scenario;
 
-        // Reset scenario timer
-        if (this._scenarioTimer) {
-            this._scenarioTimer.stop();
-        }
-        this._scenarioTimer = new ScenarioTimer(
-            null,
-            () => {
-                // Time expired — auto-submit as incorrect
-                this.handleResponse(-1);
-            }
-        );
-
         // Render the scenario and wait for user response
         if (this._scenarioContainer) {
-            const result = await renderScenario(
-                this._scenarioContainer,
-                scenario,
-                this._scenarioIndex + 1,
-                this._totalScenarios
-            );
-
-            // Start the scenario timer alongside rendering
-            this._scenarioTimer.start(scenario.timeLimit);
-
-            // The render promise resolves when user selects or times out
-            this.handleResponse(result.selectedIndex);
-        } else {
-            // No container — start timer and wait for external handleResponse call
-            this._scenarioTimer.start(scenario.timeLimit);
+            try {
+                const result = await renderScenario(
+                    this._scenarioContainer,
+                    scenario,
+                    this._scenarioIndex + 1,
+                    this._totalScenarios
+                );
+                this.handleResponse(result.selectedIndex);
+            } catch (err) {
+                console.error('[SessionController] Scenario render failed:', err);
+                // Auto-advance on render failure
+                this.handleResponse(-1);
+            }
         }
     }
 
@@ -702,26 +704,22 @@ export class SessionController {
  * @returns {Function} Cleanup function for router to call on navigation away.
  */
 export function renderSessionPage(container) {
-    // Build session layout
+    // Build session layout — scenario left, biometrics right, both visible
     container.innerHTML = `
-        <div class="session-layout">
-            <div class="session-header">
-                <div class="session-timer" id="session-timer">00:00</div>
-                <div class="session-progress" id="session-progress">
-                    <span id="scenario-counter">0 / 20</span>
-                </div>
-                <div class="session-difficulty" id="session-difficulty">
-                    <span class="difficulty-label">Difficulty</span>
-                    <span class="difficulty-value" id="difficulty-value">5</span>
-                </div>
+        <div style="padding: 0.75rem; height: 100vh; display: flex; flex-direction: column; overflow: hidden; box-sizing: border-box;">
+            <div style="display: flex; align-items: center; gap: 1.5rem; padding: 0.5rem 0.25rem; margin-bottom: 0.5rem; font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; color: #8888aa; flex-shrink: 0;">
+                <span id="session-timer" style="font-size: 1.1rem; color: #00e5ff; font-weight: 600;">00:00</span>
+                <span id="scenario-counter" style="color: #d0d0e0;">0 / 20</span>
+                <span style="display: flex; align-items: center; gap: 0.4rem;">
+                    <span>Difficulty</span>
+                    <span id="difficulty-value" style="color: #00e5ff; font-weight: 600;">5</span>
+                </span>
             </div>
-            <div class="session-body">
-                <div class="session-left">
-                    <div class="scenario-container" id="scenario-container"></div>
-                </div>
-                <div class="session-right">
-                    <div class="biometric-panels" id="biometric-panels"></div>
-                    <div class="nfi-gauge-container" id="nfi-gauge-container"></div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; flex: 1; min-height: 0;">
+                <div id="scenario-container" style="overflow-y: auto; padding-right: 0.25rem;"></div>
+                <div style="display: flex; flex-direction: column; gap: 0.5rem; min-height: 0;">
+                    <div id="biometric-panels" style="flex: 1; min-height: 0;"></div>
+                    <div id="nfi-gauge-container" style="flex-shrink: 0;"></div>
                 </div>
             </div>
         </div>
@@ -735,9 +733,43 @@ export function renderSessionPage(container) {
     const controller = new SessionController();
     const seenConditions = [];
 
-    // Wire biometric visualizer updates
+    // Wire biometric visualizer updates — map BiometricEngine snapshot format
+    // to the format BiometricVisualizer expects
+    const EEG_RAW_SCALE = 80;       // max expected raw amplitude for normalization
+    const EEG_POWER_SCALE = 500;    // max expected band power for normalization
     biometricEngine.onUpdate((snapshot) => {
-        biometricVisualizer.update(snapshot);
+        const eyeState = snapshot.eyeTracking || {};
+        const eyeMetrics = eyeState.metrics || {};
+        // Normalize band powers from raw (amplitude^2/2) to 0-1 range
+        const rawPowers = snapshot.eeg?.bandPowers || {};
+        const normPowers = {};
+        for (const key of ['delta', 'theta', 'alpha', 'beta', 'gamma']) {
+            normPowers[key] = clamp((rawPowers[key] || 0) / EEG_POWER_SCALE, 0, 1);
+        }
+        const mapped = {
+            eeg: {
+                amplitude: clamp((snapshot.eeg?.raw ?? 0) / EEG_RAW_SCALE, -1, 1),
+                bandPowers: normPowers,
+            },
+            eye: {
+                gazeX: eyeState.x != null ? clamp(eyeState.x / 1280, 0, 1) : 0.5,
+                gazeY: eyeState.y != null ? clamp(eyeState.y / 720, 0, 1) : 0.5,
+                fixating: eyeState.state === 'fixation',
+                blinking: eyeState.state === 'blink',
+                fixationCount: eyeMetrics.fixationCount ?? 0,
+                avgFixationDuration: eyeMetrics.avgFixationDuration ?? 0,
+                blinkRate: eyeMetrics.blinkRate ?? 0,
+            },
+            voice: {
+                jitter: snapshot.voice?.jitter ?? 0,
+                shimmer: snapshot.voice?.shimmer ?? 0,
+                hnr: snapshot.voice?.hnr ?? 0,
+                f0: snapshot.voice?.f0 ?? 0,
+                prosody: snapshot.voice?.prosodyVariation ?? 0,
+                stressIndex: (snapshot.voice?.stressIndex ?? 0) * 100,
+            },
+        };
+        biometricVisualizer.update(mapped);
     });
 
     // Session timer display
@@ -745,23 +777,56 @@ export function renderSessionPage(container) {
     const counterEl = document.getElementById('scenario-counter');
     const difficultyEl = document.getElementById('difficulty-value');
 
+    // Connect cognitive load: when the session controller adjusts load,
+    // propagate it to the full BiometricEngine (all 3 simulators)
+    const origAdjust = controller._adjustCognitiveLoad.bind(controller);
+    controller._adjustCognitiveLoad = function(result) {
+        origAdjust(result);
+        biometricEngine.setCognitiveLoad(controller._cognitiveLoad);
+    };
+
+    // Also wire the handleResponse cognitive load changes
+    const origHandle = controller.handleResponse.bind(controller);
+    controller.handleResponse = function(answerIndex) {
+        origHandle(answerIndex);
+        biometricEngine.setCognitiveLoad(controller._cognitiveLoad);
+    };
+
     // Start the session
     controller.startSession({
         container: document.getElementById('scenario-container'),
         getScenario: (difficulty) => {
-            const scenario = scenarioEngine.generateScenario(difficulty, seenConditions);
-            if (scenario && scenario.conditionId) {
-                seenConditions.push(scenario.conditionId);
+            try {
+                const scenario = scenarioEngine.generateScenario(difficulty, seenConditions);
+                if (scenario && scenario.conditionId) {
+                    seenConditions.push(scenario.conditionId);
+                }
+                return scenario;
+            } catch (err) {
+                console.error('[Session] Medical scenario generation failed:', err);
+                // Show the error in the scenario container for debugging
+                const sc = document.getElementById('scenario-container');
+                if (sc) {
+                    const errDiv = document.createElement('div');
+                    errDiv.style.cssText = 'color:#ff4060;padding:1rem;font-size:0.8rem;font-family:monospace;';
+                    errDiv.textContent = `Scenario error: ${err.message}`;
+                    sc.appendChild(errDiv);
+                }
+                return null;
             }
-            return scenario;
         },
         onNfiUpdate: (data) => {
+            // Compute vocal calm from live biometric engine data
+            const voiceSnap = biometricEngine.getSnapshot()?.voice;
+            const vocalCalm = voiceSnap
+                ? clamp(Math.round((1 - (voiceSnap.stressIndex || 0)) * 100), 0, 100)
+                : 65;
             nfiDisplay.update({
                 composite: data.nfi,
                 components: {
                     neuralEfficiency: data.neuralScore,
                     focusStability: data.focusScore,
-                    vocalCalm: 65,
+                    vocalCalm,
                     responseQuality: data.responseScore,
                 },
                 trend: data.trend > 0 ? 'rising' : data.trend < 0 ? 'falling' : 'stable',
@@ -784,6 +849,8 @@ export function renderSessionPage(container) {
         },
     });
 
+    // Start biometrics at a moderate cognitive load for visually interesting demo data
+    biometricEngine.setCognitiveLoad(0.4);
     biometricEngine.start();
 
     // Return cleanup function

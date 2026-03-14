@@ -11,6 +11,7 @@ import { router, navigate } from './router.js';
 /* ---- Shared application state ---- */
 export const appState = {
   user: null,
+  userId: null,
   isAuthenticated: false,
   currentRoute: null,
 };
@@ -23,27 +24,22 @@ const logoutBtn = document.getElementById('logout-btn');
 /* ---- Auth state listener ---- */
 onAuthChange((user) => {
   appState.user = user;
+  appState.userId = user ? user.uid : null;
   appState.isAuthenticated = !!user;
 
   if (user) {
-    // Show header and populate user info
     header.classList.remove('hidden');
     userEmail.textContent = user.email;
 
-    // If sitting on an auth route (or no route), redirect to dashboard
     const hash = window.location.hash;
     if (!hash || hash === '#/login' || hash === '#/signup') {
       navigate('#/dashboard');
     } else {
-      // Re-render current route (ensures guard passes now)
       navigate(hash);
     }
   } else {
-    // Hide header, clear user info
     header.classList.add('hidden');
     userEmail.textContent = '';
-
-    // Redirect to login
     navigate('#/login');
   }
 });
@@ -52,7 +48,6 @@ onAuthChange((user) => {
 logoutBtn.addEventListener('click', async () => {
   try {
     await signOut();
-    // Auth state listener will handle redirect
   } catch (err) {
     showToast(err.message, 'error');
   }
@@ -66,7 +61,6 @@ export function showToast(message, type = 'info', duration = 4000) {
   toast.textContent = message;
   container.appendChild(toast);
 
-  // Trigger entrance animation on next frame
   requestAnimationFrame(() => toast.classList.add('toast-visible'));
 
   setTimeout(() => {

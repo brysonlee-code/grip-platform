@@ -215,7 +215,7 @@ export function generatePatient(conditionId, difficulty = 5) {
     // ---- Add misleading symptoms for higher difficulty ----
     const misleadingCount = Math.floor(difficulty / 4);
     if (misleadingCount > 0) {
-        const misleading = getmisleadingSymptoms(condition, misleadingCount);
+        const misleading = getMisleadingSymptoms(condition, misleadingCount);
         symptoms.push(...misleading);
     }
 
@@ -423,7 +423,7 @@ function getPertinentNegatives(condition) {
  */
 function getMisleadingSymptoms(condition, count) {
     const misleading = [];
-    const diffIds = condition.differentialDiagnoses.slice(0, 4);
+    const diffIds = (condition.differentialDiagnoses || []).slice(0, 4);
 
     for (const diffId of diffIds) {
         const diffCondition = getConditionById(diffId);
