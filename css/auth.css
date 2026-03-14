@@ -87,6 +87,15 @@
   margin-bottom: var(--space-6);
 }
 
+.auth-subtitle {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  text-align: center;
+  margin-bottom: var(--space-6);
+  font-style: italic;
+  opacity: 0.8;
+}
+
 /* ---- Auth Form ---- */
 .auth-form {
   display: flex;

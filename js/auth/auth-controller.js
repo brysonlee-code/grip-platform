@@ -120,16 +120,16 @@ export function onAuthChange(callback) {
 /* ---- Error code mapping ---- */
 function mapAuthError(code) {
     const messages = {
-        'auth/email-already-in-use':    'An account with this email already exists.',
-        'auth/invalid-email':           'Please enter a valid email address.',
-        'auth/operation-not-allowed':   'Email/password sign-in is not enabled.',
-        'auth/weak-password':           'Password must be at least 6 characters.',
-        'auth/user-disabled':           'This account has been disabled.',
-        'auth/user-not-found':          'No account found with this email.',
-        'auth/wrong-password':          'Incorrect password.',
-        'auth/invalid-credential':      'Invalid credentials.',
-        'auth/too-many-requests':       'Too many failed attempts. Please wait.',
-        'auth/network-request-failed':  'Network error.',
+        'auth/email-already-in-use':    "Looks like you already have an account. Try signing in instead.",
+        'auth/invalid-email':           "That email doesn't look quite right. Mind double-checking?",
+        'auth/operation-not-allowed':   "Email sign-in isn't set up yet. We're working on it.",
+        'auth/weak-password':           "That password is a little short. Try at least 6 characters.",
+        'auth/user-disabled':           "This account has been paused. Reach out to us if that's unexpected.",
+        'auth/user-not-found':          "We don't recognize that email. Want to create an account instead?",
+        'auth/wrong-password':          "That password didn't match. Give it another try.",
+        'auth/invalid-credential':      "Something's off with those credentials. Try again?",
+        'auth/too-many-requests':       "Whoa, slow down. Too many attempts — take a breather and try again in a minute.",
+        'auth/network-request-failed':  "Looks like you're offline. Check your connection and try again.",
     };
-    return messages[code] || `Authentication error (${code}).`;
+    return messages[code] || `Something went wrong on our end. Try again in a moment.`;
 }
