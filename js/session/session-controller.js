@@ -709,7 +709,7 @@ export function renderSessionPage(container) {
         <div style="padding: 0.75rem; height: 100vh; display: flex; flex-direction: column; overflow: hidden; box-sizing: border-box;">
             <div style="display: flex; align-items: center; gap: 1.5rem; padding: 0.5rem 0.25rem; margin-bottom: 0.5rem; font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; color: #8888aa; flex-shrink: 0;">
                 <span id="session-timer" style="font-size: 1.1rem; color: #00e5ff; font-weight: 600;">00:00</span>
-                <span id="scenario-counter" style="color: #d0d0e0;">0 / 20</span>
+                <span id="scenario-counter" style="color: #d0d0e0;">0 / 8</span>
                 <span style="display: flex; align-items: center; gap: 0.4rem;">
                     <span>Difficulty</span>
                     <span id="difficulty-value" style="color: #00e5ff; font-weight: 600;">5</span>

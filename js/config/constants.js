@@ -35,7 +35,7 @@ export const BIOMETRIC_SAMPLE_RATE = 60;
 export const CALIBRATION_DURATION = 18000;
 
 /** @type {number} Maximum number of scenarios allowed per session */
-export const MAX_SCENARIOS_PER_SESSION = 20;
+export const MAX_SCENARIOS_PER_SESSION = 8;
 
 /** @type {number} Minimum difficulty level */
 export const DIFFICULTY_MIN = 1;
