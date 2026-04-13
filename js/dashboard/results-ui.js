@@ -170,6 +170,13 @@ export function renderResultsPage(container) {
         page.appendChild(scenarioListSection);
     }
 
+    // NFI Analysis (Part 2) button
+    const nfiDemoBtn = createElement('button', {
+        className: 'btn-nfi-analysis',
+        onclick: () => navigate('#/nfi-demo')
+    }, ['See NFI Analysis']);
+    page.appendChild(nfiDemoBtn);
+
     // Return to Dashboard button
     const returnBtn = createElement('button', {
         className: 'btn-return-dashboard',
@@ -350,6 +357,27 @@ function _injectResultsStyles() {
             font-size: 0.8rem;
             font-family: 'JetBrains Mono', monospace;
             flex: 1;
+        }
+
+        .btn-nfi-analysis {
+            display: inline-block;
+            padding: 0.875rem 2rem;
+            font-size: 1rem;
+            font-weight: 600;
+            color: #111;
+            background: linear-gradient(135deg, #00e5ff, #00e676);
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            margin-bottom: 1rem;
+            transition: box-shadow 0.2s ease, transform 0.15s ease;
+        }
+
+        .btn-nfi-analysis:hover {
+            box-shadow: 0 0 25px rgba(0, 229, 255, 0.35);
+            transform: translateY(-1px);
         }
 
         .btn-return-dashboard {

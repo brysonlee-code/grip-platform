@@ -38,6 +38,11 @@ const routes = {
     requiresAuth: true,
     load: () => import('./dashboard/results-ui.js').then(m => m.renderResultsPage),
   },
+  '#/nfi-demo': {
+    title: 'NFI Analysis',
+    requiresAuth: true,
+    load: () => import('./nfi/nfi-demo-ui.js').then(m => m.renderNFIDemoPage),
+  },
 };
 
 /* ---- Currently active cleanup function (if any) ---- */
