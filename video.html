@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Neuroplastic Labs — See What's Possible</title>
+
+  <!-- OG tags for email/social previews -->
+  <meta property="og:title" content="Neuroplastic Labs — See What's Possible">
+  <meta property="og:description" content="Watch how the Neuroplastic Fitness Index measures and improves neural health in real time.">
+  <meta property="og:type" content="video.other">
+  <!-- TODO: Update og:image with a video thumbnail -->
+  <!-- <meta property="og:image" content="https://brysonlee-code.github.io/grip-platform/assets/video-thumb.png"> -->
+  <meta property="og:url" content="https://brysonlee-code.github.io/grip-platform/video.html">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: #0A0A0F;
+      color: #E0E0E0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Header ── */
+    .header {
+      width: 100%;
+      padding: 1.25rem 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+
+    .logo {
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 700;
+      font-size: 1.1rem;
+      color: #00F0FF;
+      text-shadow: 0 0 10px rgba(0,240,255,0.4);
+      letter-spacing: 0.04em;
+    }
+
+    .logo-sub {
+      font-size: 0.75rem;
+      color: #8888AA;
+      margin-left: 0.75rem;
+      font-weight: 400;
+    }
+
+    /* ── Main content ── */
+    .main {
+      flex: 1;
+      width: 100%;
+      max-width: 820px;
+      padding: 3rem 1.5rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .headline {
+      font-size: 2.25rem;
+      font-weight: 800;
+      text-align: center;
+      line-height: 1.2;
+      margin-bottom: 0.75rem;
+    }
+
+    .headline-accent {
+      background: linear-gradient(135deg, #00F0FF, #00FF88);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .subheadline {
+      text-align: center;
+      color: #8888AA;
+      font-size: 1.05rem;
+      max-width: 550px;
+      line-height: 1.6;
+      margin-bottom: 2.5rem;
+    }
+
+    /* ── Video container ── */
+    .video-wrapper {
+      width: 100%;
+      border-radius: 16px;
+      overflow: hidden;
+      background: #12121A;
+      border: 1px solid rgba(0,240,255,0.12);
+      box-shadow: 0 8px 40px rgba(0,0,0,0.5), 0 0 30px rgba(0,240,255,0.06);
+      margin-bottom: 2.5rem;
+      position: relative;
+    }
+
+    /* 16:9 aspect ratio container */
+    .video-aspect {
+      position: relative;
+      width: 100%;
+      padding-bottom: 56.25%;
+    }
+
+    .video-aspect > * {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    /* Placeholder shown before video is ready */
+    .video-placeholder {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #12121A 0%, #1A1A28 100%);
+    }
+
+    .play-icon {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      background: rgba(0,240,255,0.12);
+      border: 2px solid rgba(0,240,255,0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 1rem;
+      transition: background 0.2s, box-shadow 0.2s;
+    }
+
+    .play-icon svg {
+      width: 28px;
+      height: 28px;
+      fill: #00F0FF;
+      margin-left: 4px;
+    }
+
+    .video-placeholder:hover .play-icon {
+      background: rgba(0,240,255,0.2);
+      box-shadow: 0 0 24px rgba(0,240,255,0.25);
+    }
+
+    .placeholder-text {
+      font-size: 0.85rem;
+      color: #555570;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    /* YouTube/Vimeo embed (hidden until src is set) */
+    .video-embed {
+      border: none;
+      display: none;
+    }
+
+    /* Self-hosted <video> (hidden until src is set) */
+    .video-player {
+      display: none;
+      object-fit: cover;
+    }
+
+    /* ── CTA section ── */
+    .cta-section {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    .btn-cta {
+      display: inline-block;
+      padding: 1rem 2.5rem;
+      font-size: 1rem;
+      font-weight: 700;
+      color: #0A0A0F;
+      background: linear-gradient(135deg, #00F0FF, #00FF88);
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      text-decoration: none;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      transition: box-shadow 0.2s, transform 0.15s;
+    }
+
+    .btn-cta:hover {
+      box-shadow: 0 0 30px rgba(0,240,255,0.35), 0 4px 16px rgba(0,0,0,0.3);
+      transform: translateY(-2px);
+    }
+
+    .cta-sub {
+      margin-top: 0.75rem;
+      font-size: 0.8rem;
+      color: #555570;
+    }
+
+    /* ── Features row ── */
+    .features {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.25rem;
+      width: 100%;
+      margin-bottom: 3rem;
+    }
+
+    @media (max-width: 600px) {
+      .features { grid-template-columns: 1fr; }
+      .headline { font-size: 1.75rem; }
+    }
+
+    .feature-card {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 12px;
+      padding: 1.25rem;
+      text-align: left;
+    }
+
+    .feature-icon {
+      font-size: 1.5rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .feature-title {
+      font-weight: 600;
+      font-size: 0.9rem;
+      color: #fff;
+      margin-bottom: 0.35rem;
+    }
+
+    .feature-desc {
+      font-size: 0.8rem;
+      color: #8888AA;
+      line-height: 1.5;
+    }
+
+    /* ── Footer ── */
+    .footer {
+      width: 100%;
+      text-align: center;
+      padding: 1.5rem;
+      border-top: 1px solid rgba(255,255,255,0.06);
+      font-size: 0.75rem;
+      color: #555570;
+    }
+
+    .footer a {
+      color: #00F0FF;
+      text-decoration: none;
+    }
+
+    .footer a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <div class="header">
+    <div>
+      <span class="logo">NEUROPLASTIC LABS</span>
+      <span class="logo-sub">Cognitive Neurotechnology</span>
+    </div>
+  </div>
+
+  <!-- Main -->
+  <div class="main">
+    <h1 class="headline">
+      Measure Your <span class="headline-accent">Neural Fitness</span>
+    </h1>
+    <p class="subheadline">
+      See how the Neuroplastic Fitness Index tracks brain efficiency, focus stability,
+      and motor recovery in real time.
+    </p>
+
+    <!-- Video -->
+    <div class="video-wrapper">
+      <div class="video-aspect">
+        <!--
+          ============ VIDEO SETUP ============
+
+          OPTION A — YouTube/Vimeo embed:
+          Uncomment the iframe below and replace YOUR_VIDEO_ID with your YouTube video ID.
+          The iframe will auto-show and the placeholder will hide.
+
+          <iframe class="video-embed" id="video-embed"
+            src="https://www.youtube.com/embed/YOUR_VIDEO_ID?rel=0&modestbranding=1"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowfullscreen>
+          </iframe>
+
+          OPTION B — Self-hosted MP4:
+          Place your .mp4 file in an assets/ folder and uncomment below:
+
+          <video class="video-player" id="video-player" controls preload="metadata"
+            poster="assets/video-thumb.png">
+            <source src="assets/demo.mp4" type="video/mp4">
+          </video>
+
+          ======================================
+        -->
+
+        <!-- Placeholder (shows when no video src is configured) -->
+        <div class="video-placeholder" id="video-placeholder">
+          <div class="play-icon">
+            <svg viewBox="0 0 24 24"><polygon points="8,5 19,12 8,19"/></svg>
+          </div>
+          <span class="placeholder-text">Video coming soon</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- CTA -->
+    <div class="cta-section">
+      <a href="https://brysonlee-code.github.io/grip-platform/" class="btn-cta">
+        Try the Live Demo
+      </a>
+      <p class="cta-sub">No account needed — runs entirely in your browser</p>
+    </div>
+
+    <!-- Features -->
+    <div class="features">
+      <div class="feature-card">
+        <div class="feature-icon">&#x1F9E0;</div>
+        <div class="feature-title">Neural Efficiency</div>
+        <div class="feature-desc">Tracks spectral entropy and metabolic efficiency from EEG signals in real time.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">&#x1F3AF;</div>
+        <div class="feature-title">Focus Stability</div>
+        <div class="feature-desc">Measures gaze accuracy and attention consistency across cognitive tasks.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">&#x1F4CA;</div>
+        <div class="feature-title">NFI Composite</div>
+        <div class="feature-desc">Weighted score combining all modalities into a single 0-100 fitness index.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    &copy; 2026 Neuroplastic Labs &mdash;
+    <a href="https://neuroplasticlabs.io">neuroplasticlabs.io</a>
+  </div>
+
+  <script>
+    // Auto-detect video configuration and show the right element
+    (function() {
+      const embed = document.getElementById('video-embed');
+      const player = document.getElementById('video-player');
+      const placeholder = document.getElementById('video-placeholder');
+
+      if (embed && embed.src && !embed.src.includes('YOUR_VIDEO_ID')) {
+        embed.style.display = 'block';
+        if (placeholder) placeholder.style.display = 'none';
+      } else if (player && player.querySelector('source')?.src && !player.querySelector('source').src.includes('demo.mp4')) {
+        player.style.display = 'block';
+        if (placeholder) placeholder.style.display = 'none';
+      }
+      // Otherwise placeholder stays visible
+    })();
+  </script>
+</body>
+</html>
